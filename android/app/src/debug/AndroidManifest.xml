@@ -1,0 +1,6 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.example.gd_map">
+    
+    <uses-permission android:name="android.permission.INTERNET"/>
+
+</manifest>
