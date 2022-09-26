@@ -57,11 +57,11 @@ class _GdMapState extends State<GdMap> {
     // TODO: implement initState
     super.initState();
     //初始化定位
-    Provider.of<PositionProvider>(context, listen: false).initlocation();
   }
 
   @override
   Widget build(BuildContext context) {
+    Provider.of<PositionProvider>(context, listen: false).initlocation(context);
     return Scaffold(
       appBar: AppBar(title: const Text("Plate")),
       body: ListView.builder(

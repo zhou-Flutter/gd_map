@@ -7,6 +7,7 @@ import 'package:amap_flutter_base/amap_flutter_base.dart';
 import 'package:gd_map/utils/event_bus.dart';
 import 'package:gd_map/utils/location_util.dart';
 import 'package:core_location_fluttify/src/latlng.dart' as Lin;
+import 'package:gd_map/widgets/gps_dialog.dart';
 
 class PositionProvider with ChangeNotifier {
   List<ChatMessage> _chatList = []; //消息信息
@@ -23,38 +24,59 @@ class PositionProvider with ChangeNotifier {
   LatLng get latLng => _latLng;
 
   //初始化定位
-  initlocation() async {
+  initlocation(context) async {
     await locationUtil.getCurrentLocation((e) async {
       _latLng = LatLng(e["latitude"], e["longitude"]);
     });
   }
 
+  gpsDialog(context) {
+    return showDialog(
+      barrierDismissible: false, // 屏蔽点击对话框外部自动关闭
+      useSafeArea: false,
+      context: context,
+      builder: (context) {
+        return WillPopScope(
+          child: GPSDialog(),
+          onWillPop: () async {
+            return Future.value(false);
+          },
+        );
+      },
+    );
+  }
+
   //定位 并返回周边
-  location() async {
+  location(context) async {
     await locationUtil.getCurrentLocation((e) async {
-      poiList = [];
+      if (e["latitude"] != null) {
+        poiList = [];
 
-      _latLng = LatLng(e["latitude"], e["longitude"]);
+        _latLng = LatLng(e["latitude"], e["longitude"]);
 
-      sendlta = Slta(
-          latLng: _latLng,
-          formatAddress: "${e["address"]}",
-          township: "${e["district"]}${e["street"]}${e["description"]}");
+        sendlta = Slta(
+            latLng: _latLng,
+            formatAddress: "${e["address"]}",
+            township: "${e["district"]}${e["street"]}${e["description"]}");
 
-      poiList = await searchAround(_latLng);
+        poiList = await searchAround(_latLng);
 
-      poiList.insert(
-          0,
-          Poi(
-              address: e["address"],
-              title: e["description"],
-              latLng: Lin.LatLng(e["latitude"], e["longitude"]),
-              cityName: e["city"],
-              provinceName: e["province"],
-              distance: 0,
-              adName: e["district"]));
+        poiList.insert(
+            0,
+            Poi(
+                address: e["address"],
+                title: e["description"],
+                latLng: Lin.LatLng(e["latitude"], e["longitude"]),
+                cityName: e["city"],
+                provinceName: e["province"],
+                distance: 0,
+                adName: e["district"]));
 
-      eventBus.fire(LocationEvent(true, poiList, _latLng));
+        eventBus.fire(LocationEvent(true, poiList, _latLng));
+      } else {
+        //定位失败
+        gpsDialog(context);
+      }
     }, once: false);
   }
 
@@ -70,7 +92,7 @@ class PositionProvider with ChangeNotifier {
     //获取具体地址 的 文字描述
     ReGeocode descPos = await AmapSearch.instance.searchReGeocode(linL);
 
-    //先这样拼吧，后续自己在剪裁优化文字
+    //TODO 先这样拼吧，后续自己在剪裁优化文字
     sendlta = Slta(
         latLng: LatLng(
             cameraPosition.target.latitude, cameraPosition.target.longitude),

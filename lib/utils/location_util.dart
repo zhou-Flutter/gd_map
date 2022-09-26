@@ -70,10 +70,8 @@ class LocationUtil {
           .onLocationChanged()
           .listen((Map<String, Object> result) {
         onLocationChanged(result);
-        if (result['longitude'] != null) {
-          //print("当前位置：$result");
-          stopLocation(once);
-        }
+
+        stopLocation(once);
       });
       startLocation();
     }
@@ -82,6 +80,9 @@ class LocationUtil {
   ///设置定位参数
   void setLocationOption() {
     AMapLocationOption locationOption = AMapLocationOption();
+
+    // locationOption.locationMode = AMapLocationMode.Battery_Saving; //低精度定位
+    locationOption.onceLocation = true; //单次定位
 
     ///将定位参数设置给定位插件
     _locationPlugin.setLocationOption(locationOption);

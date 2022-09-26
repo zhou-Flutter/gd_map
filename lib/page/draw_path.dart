@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:amap_flutter_map/amap_flutter_map.dart';
 import 'package:amap_search_fluttify/amap_search_fluttify.dart';
 import 'package:flutter/material.dart';
@@ -7,11 +9,11 @@ import 'package:flutter/src/foundation/key.dart';
 import 'package:flutter/src/widgets/framework.dart';
 import 'package:gd_map/page/drag_path_search.dart';
 import 'package:gd_map/provider/position_provider.dart';
+import 'package:gd_map/utils/tool.dart';
 import 'package:provider/provider.dart';
 import 'package:amap_flutter_base/amap_flutter_base.dart';
 
 import 'package:core_location_fluttify/src/latlng.dart' as Lin;
-import 'dart:ui' as ui;
 
 class DragPath extends StatefulWidget {
   const DragPath({Key? key}) : super(key: key);
@@ -25,20 +27,17 @@ class _DragPathState extends State<DragPath> {
 
   CameraPosition? initialCameraPosition; //初始相机位置
   late LatLng latLng;
-  Iterable<Polyline>? _polylines;
 
-  List<LatLng> points = [];
+  List<LatLng> points = []; //路径经纬度
 
-  final Map<String, Polyline> _polyline = <String, Polyline>{}; //路径
+  InputTip? inputTipStart; //输入的起点
+  InputTip? inputTipEnd; //输入的终点
 
-  InputTip? inputTipEnd;
-  InputTip? inputTipStart;
-
-  final Map<String, Marker> _initMarkerMap = <String, Marker>{};
-
-  late Marker? marker;
+  final Map<String, Marker> _initMarkerMap = <String, Marker>{}; //覆盖点
+  final Map<String, Polyline> _polyline = <String, Polyline>{}; //绘制折线 轨迹
 
   LatLng? firstDriverLng; //开车的起点
+  LatLng? endDriverLng; //开车的结束点
 
   @override
   void initState() {
@@ -67,6 +66,9 @@ class _DragPathState extends State<DragPath> {
         if (i == 0 && j == 0) {
           firstDriverLng = LatLng(latLng[0].latitude, latLng[0].longitude);
         }
+        if (i == driveStepList.length - 1 && j == latLng.length - 1) {
+          endDriverLng = LatLng(latLng[j].latitude, latLng[j].longitude);
+        }
       }
     }
 
@@ -75,28 +77,34 @@ class _DragPathState extends State<DragPath> {
 
   //添加轨迹
   void _add() async {
-    ByteData? byteData = await widgetToByteData(
+    ByteData? byteData = await Tool.widgetToByteData(
       riderView(),
       devicePixelRatio: MediaQuery.of(context).devicePixelRatio,
     );
 
     //绘制轨迹
-    final Polyline polyline =
-        Polyline(color: Colors.red, width: 10.0, points: points);
+    final Polyline polyline = Polyline(
+        color: Colors.red, width: 5.0, points: points, capType: CapType.round);
     _polyline[polyline.id] = polyline;
 
-    //绘制覆盖物
-    marker = Marker(
+    //绘制起点覆盖点
+    Marker marker = Marker(
         position: firstDriverLng!,
         icon: BitmapDescriptor.fromIconPath("assets/startIcon.png"));
 
+    // 显示自定义的view
     Marker marker2 = Marker(
       position: firstDriverLng!,
       icon: BitmapDescriptor.fromBytes(byteData!.buffer.asUint8List()),
     );
+    //终点覆盖点
+    Marker marker3 = Marker(
+        position: endDriverLng!,
+        icon: BitmapDescriptor.fromIconPath("assets/endPoi.png"));
 
-    _initMarkerMap[marker!.id] = marker!;
+    _initMarkerMap[marker.id] = marker;
     _initMarkerMap[marker2.id] = marker2;
+    _initMarkerMap[marker3.id] = marker3;
 
     //相机移动
     CameraUpdate cameraUpdate = CameraUpdate.newLatLngZoom(
@@ -108,46 +116,7 @@ class _DragPathState extends State<DragPath> {
     setState(() {});
   }
 
-  ///自定义地图mark的 widget转字节
-  Future<ByteData?> widgetToByteData(Widget widget,
-      {Alignment alignment = Alignment.center,
-      Size size = const Size(double.maxFinite, double.maxFinite),
-      double devicePixelRatio = 1.0,
-      double pixelRatio = 1.0}) async {
-    RenderRepaintBoundary repaintBoundary = RenderRepaintBoundary();
-
-    RenderView renderView = RenderView(
-      child: RenderPositionedBox(alignment: alignment, child: repaintBoundary),
-      configuration: ViewConfiguration(
-        size: size,
-        devicePixelRatio: devicePixelRatio,
-      ),
-      window: ui.window,
-    );
-
-    PipelineOwner pipelineOwner = PipelineOwner();
-    pipelineOwner.rootNode = renderView;
-    renderView.prepareInitialFrame();
-
-    BuildOwner buildOwner = BuildOwner(focusManager: FocusManager());
-    RenderObjectToWidgetElement rootElement = RenderObjectToWidgetAdapter(
-      container: repaintBoundary,
-      child: widget,
-    ).attachToRenderTree(buildOwner);
-    buildOwner.buildScope(rootElement);
-    buildOwner.finalizeTree();
-
-    pipelineOwner.flushLayout();
-    pipelineOwner.flushCompositingBits();
-    pipelineOwner.flushPaint();
-
-    ui.Image image = await repaintBoundary.toImage(pixelRatio: pixelRatio);
-    ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-
-    return byteData;
-  }
-
-  ///骑手 自定义 weight
+  ///自定义view
   riderView() {
     return Container(
       width: 400,
@@ -213,7 +182,6 @@ class _DragPathState extends State<DragPath> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          print("开始规划");
           getDrag(inputTipStart!.coordinate!, inputTipEnd!.coordinate!);
         },
         child: Icon(Icons.send),
@@ -331,7 +299,7 @@ class _DragPathState extends State<DragPath> {
               Expanded(
                 child: Container(
                   alignment: Alignment.center,
-                  child: Text("驾车"),
+                  child: Text("骑行"),
                 ),
               ),
               Expanded(
@@ -354,7 +322,7 @@ class _DragPathState extends State<DragPath> {
                   decoration: BoxDecoration(
                       color: Colors.blue[100],
                       borderRadius: BorderRadius.circular(10)),
-                  child: Text("骑行"),
+                  child: Text("驾车"),
                 ),
               ),
             ],

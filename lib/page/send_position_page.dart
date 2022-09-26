@@ -83,7 +83,7 @@ class _SendPositionState extends State<SendPosition>
 
   //初始校准定位
   location() async {
-    Provider.of<PositionProvider>(context, listen: false).location();
+    Provider.of<PositionProvider>(context, listen: false).location(context);
     eventBus.on<LocationEvent>().listen((event) {
       if (mounted) {
         isAnimate = event.isAnimate;
