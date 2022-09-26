@@ -8,10 +8,11 @@ wx：zxj824522911
 图片加载不出来使用外网加载
 
 <div>
+   <img src="https://github.com/zhou-Flutter/gd_map/blob/master/assets/demo/demo04.jpg?raw=true" width="240px" height="426px"/>
    <img src="https://github.com/zhou-Flutter/gd_map/blob/master/assets/demo/demo01.gif?raw=true" width="240px" height="426px"/>
-    <img src="https://github.com/zhou-Flutter/gd_map/blob/master/assets/demo/demo02.gif?raw=true" width="240px" height="426px"/>
-     <img src="https://github.com/zhou-Flutter/gd_map/blob/master/assets/demo/demo03.gif?raw=true" width="240px" height="426px"/>
-     <img src="https://github.com/zhou-Flutter/gd_map/blob/master/assets/demo/demo04.jpg?raw=true" width="240px" height="426px"/>
+   <img src="https://github.com/zhou-Flutter/gd_map/blob/master/assets/demo/demo02.gif?raw=true" width="240px" height="426px"/>
+   <img src="https://github.com/zhou-Flutter/gd_map/blob/master/assets/demo/demo03.gif?raw=true" width="240px" height="426px"/>
+     
      
      
     
