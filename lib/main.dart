@@ -63,7 +63,7 @@ class _GdMapState extends State<GdMap> {
   Widget build(BuildContext context) {
     Provider.of<PositionProvider>(context, listen: false).initlocation(context);
     return Scaffold(
-      appBar: AppBar(title: const Text("Plate")),
+      appBar: AppBar(title: const Text("地图定位")),
       body: ListView.builder(
         itemCount: plate.length,
         itemBuilder: (BuildContext context, int index) {
