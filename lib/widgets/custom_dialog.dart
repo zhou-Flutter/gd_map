@@ -3,17 +3,19 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/src/foundation/key.dart';
 import 'package:flutter/src/widgets/framework.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
-class GPSDialog extends StatefulWidget {
-  const GPSDialog({Key? key}) : super(key: key);
+class CustomDialog extends StatelessWidget {
+  String title;
+  String content;
+  CustomDialog({
+    this.title = "",
+    this.content = "",
+    super.key,
+  });
 
-  @override
-  State<GPSDialog> createState() => _GPSDialogState();
-}
-
-class _GPSDialogState extends State<GPSDialog> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -29,19 +31,21 @@ class _GPSDialogState extends State<GPSDialog> {
           child: Column(
             children: [
               Container(
-                padding: EdgeInsets.all(10),
+                padding: EdgeInsets.only(top: 20, bottom: 10),
                 child: Text(
-                  "提示",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
+                  title,
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
                 ),
               ),
               Container(
+                alignment: Alignment.center,
                 padding: EdgeInsets.symmetric(horizontal: 20, vertical: 5),
                 child: Text(
-                  "不能获取到你的位置，你可以通过以下操作提高定位的精度，在设置中打开GPS和WIFI",
+                  content,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 21,
                     color: Colors.black45,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
@@ -60,8 +64,9 @@ class _GPSDialogState extends State<GPSDialog> {
                           child: Text(
                             "取消",
                             style: TextStyle(
-                              fontWeight: FontWeight.w500,
-                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black38,
+                              fontSize: 20,
                             ),
                           ),
                         ),
@@ -70,8 +75,7 @@ class _GPSDialogState extends State<GPSDialog> {
                     Expanded(
                       child: InkWell(
                         onTap: () async {
-                          await AppSettings.openLocationSettings(
-                              asAnotherTask: true);
+                          await openAppSettings();
                           Navigator.pop(context);
                         },
                         child: Container(
@@ -80,8 +84,9 @@ class _GPSDialogState extends State<GPSDialog> {
                           child: Text(
                             "去设置",
                             style: TextStyle(
-                              color: Colors.black45,
-                              fontSize: 18,
+                              color: Colors.blue[500],
+                              fontWeight: FontWeight.w600,
+                              fontSize: 20,
                             ),
                           ),
                         ),
