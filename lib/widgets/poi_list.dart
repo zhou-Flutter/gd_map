@@ -1,3 +1,4 @@
+import 'package:amap_map_fluttify/amap_map_fluttify.dart';
 import 'package:amap_search_fluttify/amap_search_fluttify.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -5,7 +6,7 @@ import 'package:flutter/src/foundation/key.dart';
 import 'package:flutter/src/widgets/framework.dart';
 import 'package:gd_map/provider/position_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:amap_flutter_base/amap_flutter_base.dart';
+
 
 class PoiList extends StatefulWidget {
   ScrollController scrollController;

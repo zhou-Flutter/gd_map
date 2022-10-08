@@ -1,17 +1,15 @@
-import 'package:amap_flutter_map/amap_flutter_map.dart';
+import 'package:amap_map_fluttify/amap_map_fluttify.dart';
 import 'package:amap_search_fluttify/amap_search_fluttify.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/src/foundation/key.dart';
 import 'package:flutter/src/widgets/framework.dart';
 import 'package:gd_map/provider/position_provider.dart';
-import 'package:gd_map/utils/location_util.dart';
+
 import 'package:gd_map/widgets/poi_list.dart';
 import 'package:provider/provider.dart';
-import 'package:amap_flutter_base/amap_flutter_base.dart';
 
 class CustBottomSheet extends StatefulWidget {
   Widget child;
-  AMapController? mapController;
 
   List<Poi> poiList;
   Widget navigationBar;
@@ -19,7 +17,6 @@ class CustBottomSheet extends StatefulWidget {
   LatLng latLng;
   CustBottomSheet({
     required this.child,
-    required this.mapController,
     required this.poiList,
     required this.navigationBar,
     required this.addressIcon,
@@ -47,8 +44,6 @@ class _CustBottomSheetState extends State<CustBottomSheet> {
   int milliseconds = 250; //动画时长
 
   bool isDrag = true;
-
-  LocationUtil locationUtil = LocationUtil();
 
   //输入框文本控制器
   TextEditingController textEditingController = TextEditingController();
@@ -125,9 +120,9 @@ class _CustBottomSheetState extends State<CustBottomSheet> {
                 setState(() {});
               }),
         child: InkWell(
-          onTap: () {
+          onTap: () async {
             Provider.of<PositionProvider>(context, listen: false)
-                .startLocation();
+                .location(context);
           },
           child: Container(
             height: 45,

@@ -1,13 +1,14 @@
-import 'package:amap_flutter_base/amap_flutter_base.dart';
+import 'package:amap_map_fluttify/amap_map_fluttify.dart';
 
-class Slta {
+class SendPosition {
   LatLng? latLng;
+  String? title;
   String? formatAddress;
-  String? township;
-  Slta({
+
+  SendPosition({
     this.latLng,
+    this.title,
     this.formatAddress,
-    this.township,
   });
 }
 
@@ -15,11 +16,11 @@ class Slta {
 class ChatMessage {
   late int? messageType; //8代表位置消息
   late bool? isSelf;
-  Slta? sendlta;
+  SendPosition? sendPosition;
 
   ChatMessage({
     this.messageType,
     this.isSelf,
-    this.sendlta,
+    this.sendPosition,
   });
 }

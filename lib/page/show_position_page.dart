@@ -1,22 +1,20 @@
 import 'dart:io';
 
+import 'package:amap_map_fluttify/amap_map_fluttify.dart';
 import 'package:flutter/material.dart';
-import 'package:amap_flutter_map/amap_flutter_map.dart';
 import 'package:gd_map/model/common_model.dart';
-import 'package:gd_map/provider/position_provider.dart';
-import 'package:gd_map/utils/location_util.dart';
+
 import 'package:map_launcher/map_launcher.dart';
-import 'package:provider/provider.dart';
+
 import 'package:url_launcher/url_launcher_string.dart';
 
 import 'package:map_launcher/src/models.dart' as mapType;
-import 'package:amap_flutter_base/amap_flutter_base.dart';
 
 class ShowMap extends StatefulWidget {
-  Slta? sendlta;
+  SendPosition? sendPosition;
   ShowMap({
     Key? key,
-    required this.sendlta,
+    required this.sendPosition,
   }) : super(key: key);
 
   @override
@@ -24,20 +22,12 @@ class ShowMap extends StatefulWidget {
 }
 
 class _ShowMapState extends State<ShowMap> {
-  final Map<String, Marker> _initMarkerMap = <String, Marker>{};
+  AmapController? mapController;
 
-  LocationUtil locationUtil = LocationUtil(); //初始化定位
-
-  late Marker? marker;
-
-  AMapController? mapController;
-  List<AvailableMap> mapApp = [];
+  List<AvailableMap> mapApp = []; //需要跳转的App
   @override
   void initState() {
     super.initState();
-
-    _addMarker(LatLng(
-        widget.sendlta!.latLng!.latitude, widget.sendlta!.latLng!.longitude));
 
     getMap();
   }
@@ -48,6 +38,7 @@ class _ShowMapState extends State<ShowMap> {
     if (availableMaps.isEmpty) {
       mapApp.add(AvailableMap(
           mapName: "高德地图", mapType: mapType.MapType.amap, icon: ""));
+
       return;
     }
     print(availableMaps);
@@ -70,22 +61,12 @@ class _ShowMapState extends State<ShowMap> {
           mapApp.add(item);
           break;
         case mapType.MapType.apple:
-          item.mapName = "苹果地图";
+          item.mapName = "Apple地图";
           mapApp.add(item);
           break;
         default:
       }
     }
-  }
-
-  //地图创建完成
-  void _onMapCreated(AMapController controller) {
-    setState(() {
-      mapController = controller;
-
-      Provider.of<PositionProvider>(context, listen: false)
-          .getApprovalNumber(controller);
-    });
   }
 
   @override
@@ -143,11 +124,12 @@ class _ShowMapState extends State<ShowMap> {
             bottom: 100 + 10,
             child: InkWell(
               onTap: () async {
-                await locationUtil.getCurrentLocation((e) async {
-                  CameraUpdate cameraUpdate = CameraUpdate.newLatLngZoom(
-                      LatLng(e["latitude"], e["longitude"]), 15.5);
-                  mapController!.moveCamera(cameraUpdate, animated: true);
-                });
+                Location location = await AmapLocation.instance.fetchLocation();
+
+                // mapController?.showMyLocation(MyLocationOption(
+                //     show: true, myLocationType: MyLocationType.Locate));
+
+                mapController?.setCenterCoordinate(location.latLng!);
               },
               child: Container(
                 height: 45,
@@ -187,7 +169,7 @@ class _ShowMapState extends State<ShowMap> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "${widget.sendlta!.township}",
+                    "${widget.sendPosition!.title}",
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -196,7 +178,7 @@ class _ShowMapState extends State<ShowMap> {
                     ),
                   ),
                   Text(
-                    "${widget.sendlta!.formatAddress}",
+                    "${widget.sendPosition!.formatAddress}",
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -304,9 +286,9 @@ class _ShowMapState extends State<ShowMap> {
   openMap(AvailableMap item) {
     switch (item.mapType) {
       case mapType.MapType.amap:
-        openAmap(
-            widget.sendlta!.latLng!.latitude, widget.sendlta!.latLng!.longitude,
-            title: widget.sendlta!.formatAddress);
+        openAmap(widget.sendPosition!.latLng!.latitude,
+            widget.sendPosition!.latLng!.longitude,
+            title: widget.sendPosition!.formatAddress);
         break;
       case mapType.MapType.baidu:
         print("百度地图");
@@ -318,7 +300,7 @@ class _ShowMapState extends State<ShowMap> {
         print("谷歌地图");
         break;
       case mapType.MapType.apple:
-        print("苹果地图");
+        print("Apple地图");
         break;
       default:
     }
@@ -351,30 +333,34 @@ class _ShowMapState extends State<ShowMap> {
 
   //地图
   Widget map() {
-    CameraPosition initialCameraPosition =
-        CameraPosition(target: widget.sendlta!.latLng!, zoom: 15.5);
-    return AMapWidget(
-      apiKey: AMapApiKey(androidKey: "f43627c1ee742cb732dc2198f00c4dae"),
-      onMapCreated: _onMapCreated,
-      initialCameraPosition: initialCameraPosition,
-      compassEnabled: true,
-      buildingsEnabled: false,
-      rotateGesturesEnabled: false,
-      myLocationStyleOptions: MyLocationStyleOptions(
-        true,
-      ),
-      markers: Set<Marker>.of(_initMarkerMap.values),
-    );
-  }
+    return AmapView(
+      centerCoordinate: widget.sendPosition!.latLng,
+      zoomLevel: 16,
+      showZoomControl: false,
+      onMapCreated: (controller) async {
+        mapController = controller;
 
-  //没找到类似微信的图标，先凑合用
-  void _addMarker(e) async {
-    marker = Marker(
-      position: e,
-      icon: BitmapDescriptor.fromIconPath("assets/locate.png"),
+        if (Platform.isAndroid) {
+          await controller.setZoomByCenter(true);
+        } else if (Platform.isIOS) {
+          controller.setCenterCoordinate(widget.sendPosition!.latLng!);
+          controller.setZoomLevel(16);
+        }
+        await controller.showMyLocation(
+          MyLocationOption(show: true, myLocationType: MyLocationType.Show),
+        );
+        await controller.setRotateGesturesEnabled(false);
+        await controller.setTiltGesturesEnabled(false);
+        await controller.showCompass(false);
+        await controller.showScaleControl(false);
+      },
+      markers: [
+        MarkerOption(
+          anchorV: 1.0,
+          coordinate: widget.sendPosition!.latLng!,
+          iconProvider: AssetImage('assets/wechat_locate.png'),
+        ),
+      ],
     );
-    setState(() {
-      _initMarkerMap["0"] = marker!;
-    });
   }
 }

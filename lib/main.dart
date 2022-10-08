@@ -1,20 +1,17 @@
-import 'dart:math';
-
-import 'package:amap_flutter_map/amap_flutter_map.dart';
+import 'package:amap_map_fluttify/amap_map_fluttify.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:gd_map/page/draw_path.dart';
 import 'package:gd_map/provider/position_provider.dart';
-
-import 'package:gd_map/page/send_position_page.dart';
-import 'package:amap_flutter_base/amap_flutter_base.dart';
-
 import 'package:gd_map/page/chat_page.dart';
-import 'package:gd_map/page/show_position_page.dart';
 import 'package:provider/provider.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await AmapSearch.instance.updatePrivacyAgree(true);
+  await AmapSearch.instance.updatePrivacyShow(true);
+  await AmapService.instance.init(iosKey: '842309d7c40ba5e687141496498b1199');
+
   runApp(MyApp());
 }
 
@@ -50,18 +47,15 @@ class GdMap extends StatefulWidget {
 class _GdMapState extends State<GdMap> {
   List plate = [
     {"title": "模拟微信聊天发送位置", "page": ChatPage()},
-    {"title": "绘制路径轨迹", "page": DragPath()},
+    // {"title": "绘制路径轨迹", "page": DragPath()},
   ];
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
-    //初始化定位
   }
 
   @override
   Widget build(BuildContext context) {
-    Provider.of<PositionProvider>(context, listen: false).initlocation(context);
     return Scaffold(
       appBar: AppBar(title: const Text("地图定位")),
       body: ListView.builder(

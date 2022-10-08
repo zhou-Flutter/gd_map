@@ -1,4 +1,3 @@
-import 'package:amap_flutter_map/amap_flutter_map.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/src/foundation/key.dart';
@@ -7,7 +6,6 @@ import 'package:gd_map/model/common_model.dart';
 import 'package:gd_map/provider/position_provider.dart';
 import 'package:gd_map/page/send_position_page.dart';
 
-import 'package:amap_flutter_base/amap_flutter_base.dart';
 import 'package:gd_map/widgets/chat_map.dart';
 import 'package:provider/provider.dart';
 
@@ -39,9 +37,9 @@ class _ChatPageState extends State<ChatPage> {
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          Navigator.push(
-              context, MaterialPageRoute(builder: (context) => SendPosition()));
+        onPressed: () {
+          Provider.of<PositionProvider>(context, listen: false)
+              .initlocation(context);
         },
         child: Icon(Icons.send),
       ),
