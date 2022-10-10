@@ -42,4 +42,15 @@ class Tool {
 
     return byteData;
   }
+
+  //距离格式化
+  String formatDistance(distance) {
+    if (distance < 100) {
+      return "100m 内";
+    } else if (distance < 1000) {
+      return "$distance m";
+    } else {
+      return "${(distance / 1000).toStringAsFixed(1)}km";
+    }
+  }
 }

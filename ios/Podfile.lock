@@ -28,6 +28,8 @@ PODS:
     - Flutter
     - foundation_fluttify
   - Flutter (1.0.0)
+  - flutter_keyboard_visibility (0.0.1):
+    - Flutter
   - foundation_fluttify (0.0.1):
     - Flutter
   - map_launcher (0.0.1):
@@ -45,6 +47,7 @@ DEPENDENCIES:
   - app_settings (from `.symlinks/plugins/app_settings/ios`)
   - core_location_fluttify (from `.symlinks/plugins/core_location_fluttify/ios`)
   - Flutter (from `Flutter`)
+  - flutter_keyboard_visibility (from `.symlinks/plugins/flutter_keyboard_visibility/ios`)
   - foundation_fluttify (from `.symlinks/plugins/foundation_fluttify/ios`)
   - map_launcher (from `.symlinks/plugins/map_launcher/ios`)
   - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
@@ -72,6 +75,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/core_location_fluttify/ios"
   Flutter:
     :path: Flutter
+  flutter_keyboard_visibility:
+    :path: ".symlinks/plugins/flutter_keyboard_visibility/ios"
   foundation_fluttify:
     :path: ".symlinks/plugins/foundation_fluttify/ios"
   map_launcher:
@@ -93,6 +98,7 @@ SPEC CHECKSUMS:
   app_settings: d103828c9f5d515c4df9ee754dabd443f7cedcf3
   core_location_fluttify: 9466a411ea7d22c6349c7e6a767ae4623f01eb1d
   Flutter: f04841e97a9d0b0a8025694d0796dd46242b2854
+  flutter_keyboard_visibility: 0339d06371254c3eb25eeb90ba8d17dca8f9c069
   foundation_fluttify: 0c45145e3fad1fb99188e4979daed5b24cd9b278
   map_launcher: e325db1261d029ff33e08e03baccffe09593ffea
   permission_handler_apple: 44366e37eaf29454a1e7b1b7d736c2cceaeb17ce

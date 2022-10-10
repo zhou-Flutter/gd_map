@@ -4,8 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:gd_map/model/common_model.dart';
 import 'package:gd_map/page/send_position_page.dart';
 
-import 'package:gd_map/utils/event_bus.dart';
-
 import 'package:gd_map/widgets/commo_widgets.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -14,29 +12,27 @@ class PositionProvider with ChangeNotifier {
 
   // LocationUtil locationUtil = LocationUtil(); //初始化定位
 
-  LatLng _latLng = LatLng(39.909187, 116.397451); //当前位置指针经纬度，赋初始值
+  LatLng _latLng = LatLng(39.909187, 116.397451); //当前位置指针经纬度，赋初始值 亦是缓存的位置
 
   SendPosition? sendPosition; //需要发送的地址信息
+
+  SendPosition? searchSendPosition; //需要发送的搜索位置
 
   List<Poi> poiList = []; //周边地址
 
   List<ChatMessage> get chatList => _chatList;
   LatLng get latLng => _latLng;
 
-  //TODO 初始化定位  先这样 后续可加缓存优化跳转速度 防止初始定位 和目标值跨度大
+  //TODO 初始化定位  先这样 后续可加缓存可在程序启动的时候获取或在启动的时候定位获取
+  //TODO 目的 防止初始定位和目标值跨度大
   initlocation(context) async {
     bool status = await checkPermission(context);
-    print("状态");
-    print(status);
     if (status) {
-      Location location = await AmapLocation.instance.fetchLocation();
-      _latLng = location.latLng!;
-      print("开始定位");
-      print(location);
       Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (context) => SendPositionPage(latLng: _latLng)));
+        context,
+        MaterialPageRoute(
+            builder: (context) => SendPositionPage(latLng: _latLng)),
+      );
     }
   }
 
@@ -63,31 +59,26 @@ class PositionProvider with ChangeNotifier {
     return false;
   }
 
-  //定位 并返回周边
-  location(context) async {
-    AmapLocation.instance.fetchLocation().then((location) async {
-      if (location.latLng?.latitude != 0.0 &&
-          location.latLng?.longitude != 0.0) {
-        if (_latLng != location.latLng) {
-          _latLng = location.latLng!;
-
-          eventBus.fire(LocationEvent(true, _latLng));
-        } else {
-          print("位置重复");
-        }
-      } else {
-        // 没有获取位置经纬度
-        gpsDialog(context);
-      }
-    });
-  }
-
   //获取周边
   //TODO 后续有需求的话，添加翻页
   Future<List<Poi>> searchAround(LatLng latLng) async {
     return await AmapSearch.instance.searchAround(
       LatLng(latLng.latitude, latLng.longitude),
     );
+  }
+
+  //关键字搜索 周边
+  //TODO 后续有需求的话，添加翻页
+  Future<List<Poi>> searchKeyword(keyword) async {
+    List<Poi> searchPoi =
+        await AmapSearch.instance.searchKeyword(keyword, city: "成都市");
+    for (Poi item in searchPoi) {
+      double result =
+          await AmapService.instance.calculateDistance(item.latLng!, _latLng);
+      item.distance = result.toInt();
+    }
+
+    return searchPoi;
   }
 
   //地图相机移动结束，获取地址 周边
@@ -127,9 +118,13 @@ class PositionProvider with ChangeNotifier {
   }
 
   ///模拟发送位置消息
-  send(context) {
+  send(context, isSearch) {
     _chatList.add(
-      ChatMessage(messageType: 8, isSelf: true, sendPosition: sendPosition),
+      ChatMessage(
+        messageType: 8,
+        isSelf: true,
+        sendPosition: isSearch ? searchSendPosition : sendPosition,
+      ),
     );
 
     Navigator.pop(context);
@@ -138,18 +133,22 @@ class PositionProvider with ChangeNotifier {
   }
 
   //点击周边的列表
-  onTapPoi(Poi poi) async {
-    if (poi.latLng == _latLng) return;
+  sendDes(Poi poi, bool isSearch) async {
     _latLng = poi.latLng!;
-
     var formatAddress =
         "${poi.provinceName}" "${poi.cityName}" "${poi.adName}" "${poi.title}";
-
-    sendPosition = SendPosition(
-      latLng: _latLng,
-      formatAddress: formatAddress,
-      title: poi.title,
-    );
-    eventBus.fire(LocationEvent(false, _latLng));
+    if (isSearch) {
+      searchSendPosition = SendPosition(
+        latLng: _latLng,
+        formatAddress: formatAddress,
+        title: poi.title,
+      );
+    } else {
+      sendPosition = SendPosition(
+        latLng: _latLng,
+        formatAddress: formatAddress,
+        title: poi.title,
+      );
+    }
   }
 }

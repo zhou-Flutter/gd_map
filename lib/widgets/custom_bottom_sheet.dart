@@ -1,12 +1,16 @@
+import 'dart:async';
+
 import 'package:amap_map_fluttify/amap_map_fluttify.dart';
 import 'package:amap_search_fluttify/amap_search_fluttify.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/src/foundation/key.dart';
 import 'package:flutter/src/widgets/framework.dart';
+import 'package:gd_map/page/send_position_page.dart';
 import 'package:gd_map/provider/position_provider.dart';
 
 import 'package:gd_map/widgets/poi_list.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 
 class CustBottomSheet extends StatefulWidget {
   Widget child;
@@ -15,12 +19,14 @@ class CustBottomSheet extends StatefulWidget {
   Widget navigationBar;
   Widget addressIcon;
   LatLng latLng;
+  CustBottomSheetListener custBottomSheetListener;
   CustBottomSheet({
     required this.child,
     required this.poiList,
     required this.navigationBar,
     required this.addressIcon,
     required this.latLng,
+    required this.custBottomSheetListener,
     Key? key,
   }) : super(key: key);
 
@@ -28,7 +34,8 @@ class CustBottomSheet extends StatefulWidget {
   State<CustBottomSheet> createState() => _CustBottomSheetState();
 }
 
-class _CustBottomSheetState extends State<CustBottomSheet> {
+class _CustBottomSheetState extends State<CustBottomSheet>
+    with WidgetsBindingObserver {
   ScrollController scrollController = ScrollController();
 
   double minHeight = 300; //初始高度
@@ -39,11 +46,11 @@ class _CustBottomSheetState extends State<CustBottomSheet> {
 
   double _pointerDy = 0; //初始位置
 
-  bool isActive = false;
+  bool isActive = false; //底部buttomsheet 是否激活
 
   int milliseconds = 250; //动画时长
 
-  bool isDrag = true;
+  bool isDrag = true; //是否可点击
 
   //输入框文本控制器
   TextEditingController textEditingController = TextEditingController();
@@ -51,10 +58,77 @@ class _CustBottomSheetState extends State<CustBottomSheet> {
   //控制焦点
   final FocusNode _focusNode = FocusNode();
 
+  bool isSearch = false; //是否显示搜索列表
+
+  String keyword = ""; //搜索关键字
+
+  List<Poi> searchPoiList = []; //关键字搜索列表
+
+  late StreamSubscription<bool> keyboardSubscription; //键盘监听
+
+  bool keyboardState = false; //键盘是否弹起
+
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
+    //初始化
+    WidgetsBinding.instance.addObserver(this);
+
+    var keyboardVisibilityController = KeyboardVisibilityController();
+
+    // Subscribe
+    keyboardSubscription =
+        keyboardVisibilityController.onChange.listen((bool visible) {
+      if (visible) {
+        isSearch = true;
+        keyboardState = true;
+        widget.custBottomSheetListener.isSearchCallback(isSearch);
+
+        if (isActive) return;
+        dragHeight = maxHeight;
+        isActive = true;
+        isDrag = false;
+        setState(() {});
+
+        //动画时间禁止操作
+        Future.delayed(Duration(milliseconds: milliseconds));
+        isDrag = true;
+      } else {
+        keyboardState = false;
+      }
+    });
+  }
+
+  // @override
+  // void didChangeMetrics() {
+  //   super.didChangeMetrics();
+  //   print("object");
+  //   WidgetsBinding.instance.addPostFrameCallback((_) {
+  //     if (MediaQuery.of(context).viewInsets.bottom != 0) {
+  //       print("显示键盘");
+  //       //显示键盘
+  //       isSearch = true;
+  //       widget.custBottomSheetListener.isSearchCallback(isSearch);
+
+  //       if (isActive) return;
+  //       dragHeight = maxHeight;
+  //       isActive = true;
+  //       isDrag = false;
+  //       setState(() {});
+
+  //       //动画时间禁止操作
+  //       Future.delayed(Duration(milliseconds: milliseconds));
+  //       isDrag = true;
+  //     }
+  //   });
+  // }
+
+  @override
+  void dispose() {
+    scrollController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   @override
@@ -88,11 +162,13 @@ class _CustBottomSheetState extends State<CustBottomSheet> {
             width: MediaQuery.of(context).size.width,
             child: widget.child,
           ),
-          Positioned(
-            top: 300 - 50,
-            left: MediaQuery.of(context).size.width / 2 - 15,
-            child: widget.addressIcon,
-          ),
+          isSearch
+              ? Container()
+              : Positioned(
+                  top: 300 - 50,
+                  left: MediaQuery.of(context).size.width / 2 - 15,
+                  child: widget.addressIcon,
+                ),
         ],
       ),
     );
@@ -121,8 +197,7 @@ class _CustBottomSheetState extends State<CustBottomSheet> {
               }),
         child: InkWell(
           onTap: () async {
-            Provider.of<PositionProvider>(context, listen: false)
-                .location(context);
+            widget.custBottomSheetListener.locationOnTap();
           },
           child: Container(
             height: 45,
@@ -150,9 +225,18 @@ class _CustBottomSheetState extends State<CustBottomSheet> {
         onPointerMove: !isDrag
             ? null
             : (event) {
+                print("滑动");
                 milliseconds = 50;
                 //控制 内部LisView 是否可以滑动
-                if (scrollController.offset != 0) return;
+                if (isSearch) {
+                  if (searchPoiList.isNotEmpty) {
+                    if (scrollController.offset != 0) return;
+                  }
+                } else {
+                  if (widget.poiList.isNotEmpty) {
+                    if (scrollController.offset != 0) return;
+                  }
+                }
 
                 if (isActive) {
                   if (event.position.dy - _pointerDy > 0) {
@@ -190,6 +274,13 @@ class _CustBottomSheetState extends State<CustBottomSheet> {
                     isActive = true;
                     dragHeight = maxHeight;
                   } else {
+                    //激活状态到未激活状态
+                    FocusScope.of(context).unfocus();
+                    if (keyword.isEmpty) {
+                      isSearch = false;
+                      widget.custBottomSheetListener.isSearchCallback(isSearch);
+                    }
+
                     isActive = false;
                     dragHeight = minHeight;
                   }
@@ -226,12 +317,33 @@ class _CustBottomSheetState extends State<CustBottomSheet> {
               AnimatedContainer(
                 duration: Duration(milliseconds: milliseconds),
                 height: dragHeight - 65,
-                child: PoiList(
-                  scrollController: scrollController,
-                  isEqual: dragHeight != maxHeight,
-                  poiList: widget.poiList,
-                  latLng: widget.latLng,
-                ),
+                child: isSearch
+                    ? SearchPoiList(
+                        scrollController: scrollController,
+                        isEqual: dragHeight != maxHeight,
+                        poiList: searchPoiList,
+                        custBottomSheetListener: widget.custBottomSheetListener,
+                        itemOnTap: () {
+                          if (!keyboardState) return;
+                          if (!isActive) return;
+                          dragHeight = minHeight;
+                          isActive = false;
+                          isDrag = false;
+                          FocusScope.of(context).unfocus();
+                          setState(() {});
+
+                          //动画时间禁止操作
+                          Future.delayed(Duration(milliseconds: milliseconds));
+                          isDrag = true;
+                          setState(() {});
+                        })
+                    : PoiList(
+                        scrollController: scrollController,
+                        isEqual: dragHeight != maxHeight,
+                        poiList: widget.poiList,
+                        latLng: widget.latLng,
+                        custBottomSheetListener: widget.custBottomSheetListener,
+                      ),
               ),
             ],
           ),
@@ -256,6 +368,7 @@ class _CustBottomSheetState extends State<CustBottomSheet> {
               ),
               child: TextField(
                 controller: textEditingController,
+                textInputAction: TextInputAction.search,
                 focusNode: _focusNode,
                 autofocus: false,
                 decoration: const InputDecoration(
@@ -272,14 +385,77 @@ class _CustBottomSheetState extends State<CustBottomSheet> {
                   isCollapsed: true,
                   border: InputBorder.none,
                 ),
-                onChanged: (e) {
-                  // print(e);
-                  // inputValue = e;
+                onChanged: (e) async {
+                  keyword = e;
+                  searchPoiList = await Provider.of<PositionProvider>(context,
+                          listen: false)
+                      .searchKeyword(keyword);
                   setState(() {});
                 },
+                onSubmitted: ((value) {
+                  print("开始搜索");
+
+                  if (searchPoiList.isNotEmpty) {
+                    widget.custBottomSheetListener
+                        .keyboardSearcOnTap(searchPoiList[0]);
+                  }
+                  if (!isActive) return;
+                  dragHeight = minHeight;
+                  isActive = false;
+                  isDrag = false;
+                  setState(() {});
+
+                  //动画时间禁止操作
+                  Future.delayed(Duration(milliseconds: milliseconds));
+                  isDrag = true;
+                  setState(() {});
+                }),
               ),
             ),
           ),
+          isSearch
+              ? InkWell(
+                  onTap: () {
+                    print("开始关闭");
+                    if (isActive) {
+                      dragHeight = minHeight;
+                      isActive = false;
+                      isDrag = false;
+
+                      setState(() {});
+
+                      FocusScope.of(context).unfocus();
+
+                      //动画时间禁止操作
+                      Future.delayed(Duration(milliseconds: milliseconds), (() {
+                        isDrag = true;
+                      }));
+                    }
+                    isSearch = false;
+                    widget.custBottomSheetListener.isSearchCallback(isSearch);
+                    textEditingController.clear();
+                    keyword = "";
+                    widget.custBottomSheetListener.cancelBtnOnTap();
+                    searchPoiList = [];
+
+                    print(isActive);
+                    print(dragHeight);
+
+                    setState(() {});
+                  },
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 5),
+                    child: Text(
+                      "取消",
+                      style: TextStyle(
+                        color: Color.fromARGB(255, 109, 134, 170),
+                        fontSize: 17,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                )
+              : Container(),
         ],
       ),
     );

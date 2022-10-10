@@ -4,7 +4,7 @@ import 'package:gd_map/widgets/custom_dialog.dart';
 import 'package:provider/provider.dart';
 
 ///地图层导航栏
-Widget navigationBar(context, poiList) {
+Widget navigationBar(context, bool isSend, bool isSearch) {
   return Container(
     padding: EdgeInsets.only(right: 25, left: 25, top: 45, bottom: 25),
     decoration: BoxDecoration(
@@ -31,17 +31,17 @@ Widget navigationBar(context, poiList) {
         ),
         Spacer(),
         InkWell(
-          onTap: poiList.isEmpty
-              ? null
-              : () {
+          onTap: isSend
+              ? () {
                   Provider.of<PositionProvider>(context, listen: false)
-                      .send(context);
-                },
+                      .send(context, isSearch);
+                }
+              : null,
           child: Container(
             padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(5),
-              color: poiList.isEmpty ? Colors.black45 : Colors.green,
+              color: isSend ? Colors.green : Colors.black45,
             ),
             child: Text(
               "发送",

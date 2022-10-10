@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import 'package:gd_map/provider/position_provider.dart';
-import 'package:gd_map/utils/event_bus.dart';
 
 import 'package:gd_map/widgets/commo_widgets.dart';
 import 'package:gd_map/widgets/custom_bottom_sheet.dart';
@@ -25,7 +24,8 @@ class SendPositionPage extends StatefulWidget {
 }
 
 class _SendPositionPageState extends State<SendPositionPage>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin
+    implements CustBottomSheetListener {
   AmapController? mapController;
 
   List<Poi> poiList = []; //周边地址
@@ -37,11 +37,15 @@ class _SendPositionPageState extends State<SendPositionPage>
 
   bool isAnimate = true; //控制是否需要地址图标弹跳动画，以及有弹跳要刷新周边
 
-  LatLng? latLng; //当前位置指针经纬度
+  LatLng? latLng = LatLng(39.909187, 116.397451); //位置指针经纬度
 
   Timer? _timer;
 
   int _start = 0; //计时器 计数
+
+  bool isSearch = false; // 是否是搜索模式
+
+  bool isSend = false; //是否可以发送
 
   @override
   void initState() {
@@ -49,10 +53,7 @@ class _SendPositionPageState extends State<SendPositionPage>
 
     addressIconAnimated();
 
-    //初始相机位置
     latLng = widget.latLng;
-
-    initPeriList();
 
     location();
   }
@@ -81,28 +82,48 @@ class _SendPositionPageState extends State<SendPositionPage>
   }
 
   //初始化  获取周边
-  initPeriList() async {
-    poiList = await Provider.of<PositionProvider>(context, listen: false)
-        .getPeriList(latLng!);
-    setState(() {});
+  initPeriList(LatLng latLng) async {
+    Provider.of<PositionProvider>(context, listen: false)
+        .getPeriList(latLng)
+        .then((value) {
+      poiList = value;
+      isSend = true;
+      setState(() {});
+    });
   }
 
   //初始化定位
   location() async {
-    Provider.of<PositionProvider>(context, listen: false).location(context);
-    eventBus.on<LocationEvent>().listen((event) {
-      if (mounted) {
-        isAnimate = event.isAnimate;
-
-        mapController?.setCenterCoordinate(event.latLng);
-
-        if (!isAnimate) {
-          latLng = event.latLng;
-          timer();
+    AmapLocation.instance.fetchLocation().then((location) async {
+      if (location.latLng?.latitude != 0.0 &&
+          location.latLng?.longitude != 0.0) {
+        if (latLng != location.latLng) {
+          latLng = location.latLng!;
+          mapController?.setCenterCoordinate(latLng!);
+          initPeriList(location.latLng!);
+        } else {
+          print("位置重复");
         }
-        setState(() {});
+      } else {
+        // 没有获取位置经纬度
+        gpsDialog(context);
       }
     });
+  }
+
+  //设置定位mark
+  setMark(LatLng latLng) {
+    isAnimate = false;
+    mapController?.setCenterCoordinate(latLng, animated: false);
+    mapController?.clear(keepMyLocation: true);
+    mapController?.addMarker(
+      MarkerOption(
+        anchorV: 1.0,
+        coordinate: latLng,
+        iconProvider: AssetImage('assets/wechat_locate.png'),
+      ),
+    );
+    timer();
   }
 
   //抵消地图开始移动到结束的时间
@@ -124,23 +145,16 @@ class _SendPositionPageState extends State<SendPositionPage>
   }
 
   @override
-  void dispose() {
-    // TODO: implement dispose
-    _controller.dispose();
-    mapController?.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       resizeToAvoidBottomInset: false,
       body: CustBottomSheet(
         child: map(),
         poiList: poiList,
-        navigationBar: navigationBar(context, poiList),
+        navigationBar: navigationBar(context, isSend, isSearch),
         addressIcon: addressIcon(ay),
         latLng: latLng!,
+        custBottomSheetListener: this,
       ),
     );
   }
@@ -167,8 +181,10 @@ class _SendPositionPageState extends State<SendPositionPage>
         controller.showMyLocation(MyLocationOption());
       },
       onMapMoveEnd: ((MapMove move) async {
+        if (isSearch) return;
         if (move.coordinate != latLng) {
           if (isAnimate) {
+            isSend = false;
             poiList = [];
 
             latLng = move.coordinate;
@@ -176,14 +192,93 @@ class _SendPositionPageState extends State<SendPositionPage>
 
             _controller.forward();
 
-            poiList =
-                await Provider.of<PositionProvider>(context, listen: false)
-                    .getPeriList(move.coordinate!);
-
-            setState(() {});
+            initPeriList(move.coordinate!);
           }
         }
       }),
     );
   }
+
+  @override
+  void cancelBtnOnTap() async {
+    // TODO: implement cancelBtnCallback
+    isAnimate = false;
+    isSend = true;
+    mapController?.setCenterCoordinate(latLng!, animated: false);
+    mapController?.clear(keepMyLocation: true);
+    setState(() {});
+    timer();
+  }
+
+  @override
+  void locationOnTap() {
+    // TODO: implement locationBtn
+    if (isSearch) {
+      AmapLocation.instance.fetchLocation().then((location) async {
+        if (location.latLng?.latitude != 0.0 &&
+            location.latLng?.longitude != 0.0) {
+          mapController?.setCenterCoordinate(latLng!);
+        } else {
+          // 没有获取位置经纬度
+          gpsDialog(context);
+        }
+      });
+    } else {
+      location();
+    }
+  }
+
+  @override
+  void poiItemOnTap(Poi poi) {
+    // TODO: implement poiItemOnTap
+    latLng = poi.latLng;
+    isAnimate = false;
+    mapController?.setCenterCoordinate(poi.latLng!);
+
+    Provider.of<PositionProvider>(context, listen: false).sendDes(poi, false);
+    timer();
+    setState(() {});
+  }
+
+  @override
+  void searchPoiItemOnTap(Poi searchPoi) {
+    // TODO: implement searchPoiItemOnTap
+    isSend = true;
+    Provider.of<PositionProvider>(context, listen: false)
+        .sendDes(searchPoi, true);
+    setState(() {});
+
+    setMark(searchPoi.latLng!);
+  }
+
+  @override
+  void keyboardSearcOnTap(Poi poi) {
+    // TODO: implement searchBtn
+    setMark(poi.latLng!);
+  }
+
+  @override
+  void isSearchCallback(bool search) {
+    // TODO: implement isSearchCallback
+    isSearch = search;
+    isSend = false;
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    _controller.dispose();
+    mapController?.dispose();
+    super.dispose();
+  }
+}
+
+abstract class CustBottomSheetListener {
+  void cancelBtnOnTap();
+  void locationOnTap();
+  void poiItemOnTap(Poi poi);
+  void searchPoiItemOnTap(Poi searchPoi);
+  void keyboardSearcOnTap(Poi poi);
+  void isSearchCallback(bool isSearch);
 }
