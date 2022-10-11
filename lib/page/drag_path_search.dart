@@ -34,7 +34,7 @@ class _SearchPosState extends State<SearchPos> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        padding: EdgeInsets.only(top: 20),
+        padding: EdgeInsets.only(top: 40),
         child: Column(
           mainAxisSize: MainAxisSize.max,
           children: [
@@ -81,14 +81,13 @@ class _SearchPosState extends State<SearchPos> {
                         border: InputBorder.none,
                       ),
                       onChanged: (e) {
-                        print(e);
                         search(e);
-
                         setState(() {});
                       },
                     ),
                   ),
                 ),
+                SizedBox(width: 10)
               ],
             ),
             posList(),

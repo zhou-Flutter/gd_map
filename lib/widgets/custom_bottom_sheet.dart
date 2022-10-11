@@ -100,30 +100,6 @@ class _CustBottomSheetState extends State<CustBottomSheet>
     });
   }
 
-  // @override
-  // void didChangeMetrics() {
-  //   super.didChangeMetrics();
-  //   print("object");
-  //   WidgetsBinding.instance.addPostFrameCallback((_) {
-  //     if (MediaQuery.of(context).viewInsets.bottom != 0) {
-  //       print("显示键盘");
-  //       //显示键盘
-  //       isSearch = true;
-  //       widget.custBottomSheetListener.isSearchCallback(isSearch);
-
-  //       if (isActive) return;
-  //       dragHeight = maxHeight;
-  //       isActive = true;
-  //       isDrag = false;
-  //       setState(() {});
-
-  //       //动画时间禁止操作
-  //       Future.delayed(Duration(milliseconds: milliseconds));
-  //       isDrag = true;
-  //     }
-  //   });
-  // }
-
   @override
   void dispose() {
     scrollController.dispose();
@@ -188,6 +164,13 @@ class _CustBottomSheetState extends State<CustBottomSheet>
                 dragHeight = minHeight;
                 isActive = false;
                 isDrag = false;
+                FocusScope.of(context).unfocus();
+
+                if (keyword.length == 0) {
+                  isSearch = false;
+                  widget.custBottomSheetListener.cancelBtnOnTap();
+                  searchPoiList = [];
+                }
                 setState(() {});
 
                 //动画时间禁止操作
@@ -432,14 +415,10 @@ class _CustBottomSheetState extends State<CustBottomSheet>
                       }));
                     }
                     isSearch = false;
-                    widget.custBottomSheetListener.isSearchCallback(isSearch);
                     textEditingController.clear();
                     keyword = "";
                     widget.custBottomSheetListener.cancelBtnOnTap();
                     searchPoiList = [];
-
-                    print(isActive);
-                    print(dragHeight);
 
                     setState(() {});
                   },

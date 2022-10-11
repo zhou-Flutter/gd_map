@@ -204,6 +204,7 @@ class _SendPositionPageState extends State<SendPositionPage>
     // TODO: implement cancelBtnCallback
     isAnimate = false;
     isSend = true;
+    isSearch = false;
     mapController?.setCenterCoordinate(latLng!, animated: false);
     mapController?.clear(keepMyLocation: true);
     setState(() {});

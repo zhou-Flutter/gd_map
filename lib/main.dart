@@ -47,7 +47,7 @@ class GdMap extends StatefulWidget {
 class _GdMapState extends State<GdMap> {
   List plate = [
     {"title": "模拟微信聊天发送位置", "page": ChatPage()},
-    // {"title": "绘制路径轨迹", "page": DragPath()},
+    {"title": "绘制 路径和Mark", "page": DragPath()},
   ];
   @override
   void initState() {
